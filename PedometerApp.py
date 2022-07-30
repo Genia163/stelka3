@@ -1,4 +1,3 @@
-# версия 1
 import serial
 import New_graf  # Это наш конвертированный файл дизайна
 from PyQt5 import QtWidgets
