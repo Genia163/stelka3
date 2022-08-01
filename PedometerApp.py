@@ -1,3 +1,4 @@
+
 import serial
 from PyQt5.QtGui import QPixmap
 
@@ -12,6 +13,8 @@ import mplcursors
 import numpy as np
 import New_graf
 import save_contour
+import cv2
+import os
 
 
 # Поток для считывания серии наблюдений
@@ -30,8 +33,23 @@ class SaveContour(QtWidgets.QMainWindow,save_contour.Ui_MainWindow):
         self.setupUi(self)
         self.showMaximized()
         self.scene = QtWidgets.QGraphicsScene(self)
-        pixmap = QPixmap("Ноги.png")
+        pixmap = QPixmap("New_contour")
         self.label.setPixmap(pixmap)
+        colormin = np.array((12), np.uint8)  # нижняя граница
+        colormax = np.array((220), np.uint8)  # верхняя граница
+        img = cv2.imread('foo_gray.png')
+        #img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        # thresh = cv2.inRange( img_gray, colormin, colormax )
+        thresh = cv2.inRange(img, colormin, colormax)
+
+        # отображаем контуры поверх изображения
+        contours, hierarchy = cv2.findContours(thresh.copy(), cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+        # index_cont отображение определенного замкнутого контура, например 5
+        index_cont = 4
+        II = cv2.drawContours(img, contours, index_cont, (240), 2, cv2.LINE_AA, hierarchy, 1)
+        print(type(II))
+        plt.figure(figsize=(10, 10))  # размер изображения
+        plt.imshow(II)
 
 
 class PedometerApp(QtWidgets.QMainWindow, New_graf.Ui_MainWindow):
@@ -65,7 +83,8 @@ class PedometerApp(QtWidgets.QMainWindow, New_graf.Ui_MainWindow):
         self.record.clicked.connect(self.record_button)  # Считывание данных с платы
         self.save_png.clicked.connect(self.save_as_png)  # Сохранение графика как картинки
         # Кнопка закрыть изначально вот это "self.close_app.clicked.connect(app.quit)  # закрытие приложения"
-        self.close_app.clicked.connect(self.open_new_windows)  # закрытие приложения
+        self.close_app.clicked.connect(app.quit)
+        self.create_contour.clicked.connect(self.open_new_windows)  # закрытие приложения
         self.open_data.clicked.connect(self.open_data_np)   # Открытие данных
         self.save_png_menu.triggered.connect(self.save_as_png)  # сохранение снимка
         self.open_read_menu.triggered.connect(self.open_data_np)
@@ -77,8 +96,30 @@ class PedometerApp(QtWidgets.QMainWindow, New_graf.Ui_MainWindow):
         self.record.setText('Запись')  # Текст кнопки
 
     def open_new_windows(self):
-        self.twoWindow = SaveContour()
-        self.twoWindow.show()
+        plt.savefig("New_contour")
+        self.figure.clear()
+        colormin = np.array((12), np.uint8)  # нижняя граница
+        colormax = np.array((220), np.uint8)  # верхняя граница
+        img = cv2.imread("New_contour.png")
+        # img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        # thresh = cv2.inRange( img_gray, colormin, colormax )
+        thresh = cv2.inRange(img, colormin, colormax)
+        # отображаем контуры поверх изображения
+        contours, hierarchy = cv2.findContours(thresh.copy(), cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+        # index_cont отображение определенного замкнутого контура, например 5
+        index_cont = -1
+        II = cv2.drawContours(img, contours, index_cont, (240), 2, cv2.LINE_AA, hierarchy, 1)
+        #plt.figure(figsize=(10, 10))  # размер изображения
+        self.plot_in_contour(II)
+        #plt.imshow(II)
+        #self.canvas.draw()
+
+    def plot_in_contour(self, array):
+        self.figure.clear()
+        #array = gaussian_filter(array, sigma=(0.7, 0.7), mode='reflect')
+        plt.imshow(array)
+
+        self.canvas.draw()
 
     # Изменение показаний SpiBox
     def change_shot_spinbox(self):
@@ -108,12 +149,11 @@ class PedometerApp(QtWidgets.QMainWindow, New_graf.Ui_MainWindow):
     # Отрисовка графиков. Функция принимает массив
     def plot_in_app(self, array):
         self.figure.clear()
-        #array = 0.1806*array**2 - 245.3*array + 8.327e+04
         max_array = np.amax(array)
         print(sum(sum(array)))
         #array = gaussian_filter(array, sigma=(0.7, 0.7), mode='reflect')
         plt.imshow(array, extent=([0, len(array), 0, len(array)]), cmap='Greens',
-                   interpolation='none', vmin=0, vmax=max_array)
+                   interpolation='bilinear', vmin=0, vmax=max_array)
         if self.legend.isChecked():
             plt.colorbar(label="Давление кг/см^2")
         if not self.axis.isChecked():
