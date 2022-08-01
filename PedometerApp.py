@@ -214,3 +214,5 @@ if __name__ == '__main__':
     window = PedometerApp()  # Создаём объект класса ExampleApp
     window.show()  # Показываем окно
     sys.exit(app.exec_())  # и запускаем приложение
+
+#%%
