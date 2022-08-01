@@ -118,7 +118,6 @@ class PedometerApp(QtWidgets.QMainWindow, New_graf.Ui_MainWindow):
         self.figure.clear()
         #array = gaussian_filter(array, sigma=(0.7, 0.7), mode='reflect')
         plt.imshow(array)
-
         self.canvas.draw()
 
     # Изменение показаний SpiBox
