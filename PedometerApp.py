@@ -1,4 +1,6 @@
 import serial
+from PyQt5.QtGui import QPixmap
+
 import New_graf  # Это наш конвертированный файл дизайна
 from PyQt5 import QtWidgets
 from PyQt5.QtCore import QThread
@@ -8,6 +10,8 @@ import matplotlib.pyplot as plt
 from scipy.ndimage.filters import gaussian_filter
 import mplcursors
 import numpy as np
+import New_graf
+import save_contour
 
 
 # Поток для считывания серии наблюдений
@@ -20,11 +24,21 @@ class ReadingFlow(QThread):
         while self.main_window.thread_run:
             self.main_window.read_data_plata()
 
+class SaveContour(QtWidgets.QMainWindow,save_contour.Ui_MainWindow):
+    def __init__(self):
+        super().__init__()
+        self.setupUi(self)
+        self.showMaximized()
+        self.scene = QtWidgets.QGraphicsScene(self)
+        pixmap = QPixmap("Ноги.png")
+        self.label.setPixmap(pixmap)
+
 
 class PedometerApp(QtWidgets.QMainWindow, New_graf.Ui_MainWindow):
     # Конфигуратор приложения
-    def __init__(self):
-        super().__init__()
+    def __init__(self, parent = None):
+        super().__init__(parent)
+        self.twoWindow = None
         self.setupUi(self)
         self.showMaximized()  # Приложение во весь экран
         # Создание глобальных переменных
@@ -50,7 +64,8 @@ class PedometerApp(QtWidgets.QMainWindow, New_graf.Ui_MainWindow):
         # Сигналы от элементов приложения
         self.record.clicked.connect(self.record_button)  # Считывание данных с платы
         self.save_png.clicked.connect(self.save_as_png)  # Сохранение графика как картинки
-        self.close_app.clicked.connect(app.quit)  # закрытие приложения
+        # Кнопка закрыть изначально вот это "self.close_app.clicked.connect(app.quit)  # закрытие приложения"
+        self.close_app.clicked.connect(self.open_new_windows)  # закрытие приложения
         self.open_data.clicked.connect(self.open_data_np)   # Открытие данных
         self.save_png_menu.triggered.connect(self.save_as_png)  # сохранение снимка
         self.open_read_menu.triggered.connect(self.open_data_np)
@@ -60,6 +75,10 @@ class PedometerApp(QtWidgets.QMainWindow, New_graf.Ui_MainWindow):
         self.number_shot.valueChanged.connect(self.change_shot_spinbox)
         self.record.setStyleSheet('QPushButton {background-color: green;}')  # Установка фона кнопки
         self.record.setText('Запись')  # Текст кнопки
+
+    def open_new_windows(self):
+        self.twoWindow = SaveContour()
+        self.twoWindow.show()
 
     # Изменение показаний SpiBox
     def change_shot_spinbox(self):
